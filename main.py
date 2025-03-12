@@ -62,6 +62,7 @@ class Main:
 
     def buy_resources(self, turn_info):
         max_buildings = turn_info["TX"]
+        newResources = []
         #### optimisation code in here somewhere
         powered_buildings = 0
         for resource in self.existingResources:
