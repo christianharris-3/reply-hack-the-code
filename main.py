@@ -48,7 +48,7 @@ class Main:
         turn_profit = self.calc_profit(turn_info)
         self.budget = self.budget - turn_costs + turn_profit
         self.total_score += turn_profit
-        print('current score:',self.total_score,'cost',turn_costs,'profit',turn_profit,'resources: ',[(a.isActive, a.RI) for a in self.existingResources])
+        # print('current score:',self.total_score,'cost',turn_costs,'profit',turn_profit,'current_money',self.budget,'resources: ',[(a.isActive, a.RI) for a in self.existingResources])
 
     def manage_resources(self):
         remove_list = []
@@ -62,8 +62,8 @@ class Main:
     def buy_resources(self, turn_info):
         #### optimisation code in here somewhere
 
-        # newResources = self.get_optimal_options(turn_info)
-        newResources = self.get_predefined_options()
+        newResources = self.get_optimal_options(turn_info)
+        # newResources = self.get_predefined_options()
 
         #### ------
 
@@ -109,6 +109,7 @@ class Main:
 
         ## calculate buildings and store them in accumulator
         buildings = powered_buildings
+
         if powered_buildings > building_max:
             excess_buildings = powered_buildings - building_max
             space_in_accumulator = self.accumulator['size']-self.accumulator['stored']
@@ -116,10 +117,12 @@ class Main:
                 self.accumulator['stored'] += excess_buildings
                 buildings += excess_buildings
             else:
+                excess_buildings-=space_in_accumulator
+                buildings-=excess_buildings
                 self.accumulator['stored'] += space_in_accumulator
-                buildings += space_in_accumulator
 
         value_per_building = max(self.get_affected_value(turn_info['TR'], 'D') ,0)
+
         return buildings*value_per_building
 
     def get_affected_value(self,value, effect_code, floor=True):
@@ -182,9 +185,9 @@ class Main:
         return new_resources
 
 if __name__ == "__main__":
-    # inputs = ["0-demo.txt", "1-thunberg.txt", "2-attenborough.txt", "4-maathai.txt", "6-earle.txt",
-    #           "7-mckibben.txt" ,"8-shiva.txt"]
-    inputs = ["0-demo.txt"]
+    inputs = ["0-demo.txt", "1-thunberg.txt", "2-attenborough.txt", "4-maathai.txt", "6-earle.txt",
+              "7-mckibben.txt" ,"8-shiva.txt"]
+    # inputs = ["0-demo.txt"]
     for inp in inputs:
         main = Main('inputs/'+inp)
         main.play_game()
