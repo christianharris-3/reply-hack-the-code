@@ -3,7 +3,7 @@ from Resource import Resource
 
 class Main:
     def __init__(self, input_file):
-        self.output_file = 'output '+input_file
+        self.output_file = 'outputs/output '+input_file.split("/")[-1]
         out = readFile(input_file)
         self.initialCapital = out[0]
         self.resourceInfo = out[1]
@@ -13,6 +13,7 @@ class Main:
         self.budget = self.initialCapital
         self.total_score = 0
         self.existingResources = []
+        self.turns_index = -1
 
         self.decisions = []
 
@@ -30,27 +31,40 @@ class Main:
 
 
     def do_turn(self, turn_info):
+        self.turns_index += 1
+        self.manage_resources()
         self.buy_resources()
-        # self.apply_periodic_cost()
-        # self.apply_profit()
         turn_costs = self.calc_maintenance_cost()
         turn_profit = self.calc_profit(turn_info)
         self.budget = self.budget - turn_costs + turn_profit
 
-
+    def manage_resources(self):
+        remove_list = []
+        for item in self.existingResources:
+            item.update_turns()
+            if item.get_out_of_life():
+                remove_list.append(item)
+        for rem in remove_list:
+            self.existingResources.remove(rem)
 
     def buy_resources(self):
         newResources = []
         #### optimisation code in here somewhere
 
-        newResources.append(self.resources[0])
+        # if self.budget > 5:
+        #     newResources.append(self.resources[1])
 
         #### ------
 
-        ## create all new resources
-        cost = sum([res.RA for res in newResources])
-        self.budget -= cost
-        decision = [len(self.decisions), len(newResources)]
+        #### create all new resources
+        # cut resources that cost too much
+        get_cost = lambda resources: sum([res.RA for res in resources])
+        while self.budget < get_cost(newResources) and len(newResources) > 0:
+            del newResources[0]
+
+        # apply decisions
+        self.budget -= get_cost(newResources)
+        decision = [self.turns_index, len(newResources)]
         for item in newResources:
             self.existingResources.append(item.recreate())
             decision.append(item.RI)
@@ -72,5 +86,8 @@ class Main:
         return min(powered_buildings, turn_info['TX']) * turn_info['TR']
 
 if __name__ == "__main__":
-    main = Main("0-demo.txt")
-    main.play_game()
+    inputs = ["0-demo.txt", "1-thunberg.txt", "2-attenborough.txt", "4-maathai.txt", "6-earle.txt",
+              "7-mckibben.txt" ,"8-shiva.txt"]
+    for inp in inputs:
+        main = Main('inputs/'+inp)
+        main.play_game()

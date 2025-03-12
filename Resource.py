@@ -15,9 +15,11 @@ class Resource:
             self.RE = info['RE'] # Effect percentage
         self.turnsActive = 0
         self.turnsDown = 0
+        self.turnsExisted = 0
         self.isActive = True
 
     def update_turns(self):
+        self.turnsExisted += 1
         if self.isActive:
             self.turnsActive += 1
             if self.turnsActive == self.RW:
@@ -29,8 +31,11 @@ class Resource:
             if self.turnsDown == self.RM:
                 self.isActive = True
                 self.turnsDown = 0
+    def get_out_of_life(self):
+        return self.turnsExisted == self.RL
+
     def get_maintenance_cost(self):
-        return self.RP;
+        return self.RP
 
     def get_powered_buildings(self):
         if self.isActive:
