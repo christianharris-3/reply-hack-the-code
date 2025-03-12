@@ -48,6 +48,7 @@ class Main:
         turn_profit = self.calc_profit(turn_info)
         self.budget = self.budget - turn_costs + turn_profit
         self.total_score += turn_profit
+        print('current score:',self.total_score,'cost',turn_costs,'profit',turn_profit,'resources: ',[(a.isActive, a.RI) for a in self.existingResources])
 
     def manage_resources(self):
         remove_list = []
@@ -61,7 +62,8 @@ class Main:
     def buy_resources(self, turn_info):
         #### optimisation code in here somewhere
 
-        newResources = self.get_optimal_options(turn_info)
+        # newResources = self.get_optimal_options(turn_info)
+        newResources = self.get_predefined_options()
 
         #### ------
 
@@ -128,7 +130,7 @@ class Main:
                     percent_total += item.RE
         if floor:
             return math.floor(value * (1+percent_total/100))
-        return value*percent_total
+        return value * (1+percent_total/100)
 
     def manage_accumulator(self):
         total = 0
@@ -171,9 +173,18 @@ class Main:
     def get_resource_value(self, resource, turn_info):
         return resource.RU * turn_info['TR'] * resource.RL / (resource.RA + resource.RP)
 
+    def get_predefined_options(self):
+        ids = [[5],[2],[2],[],[2,2],[2]]
+        outputs = ids[self.turns_index]
+        new_resources = []
+        for id_val in outputs:
+            new_resources.append(self.resources[id_val-1])
+        return new_resources
+
 if __name__ == "__main__":
-    inputs = ["0-demo.txt", "1-thunberg.txt", "2-attenborough.txt", "4-maathai.txt", "6-earle.txt",
-              "7-mckibben.txt" ,"8-shiva.txt"]
+    # inputs = ["0-demo.txt", "1-thunberg.txt", "2-attenborough.txt", "4-maathai.txt", "6-earle.txt",
+    #           "7-mckibben.txt" ,"8-shiva.txt"]
+    inputs = ["0-demo.txt"]
     for inp in inputs:
         main = Main('inputs/'+inp)
         main.play_game()
