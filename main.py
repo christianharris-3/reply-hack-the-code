@@ -31,16 +31,18 @@ class Main:
         for turn_info in self.turnsInfo:
             self.do_turn(turn_info)
         self.save_decisions()
+        print('total score: ',self.total_score)
 
 
     def do_turn(self, turn_info):
         self.turns_index += 1
         self.manage_resources()
         self.manage_accumulator()
-        self.buy_resources()
+        self.buy_resources(turn_info)
         turn_costs = self.calc_maintenance_cost()
         turn_profit = self.calc_profit(turn_info)
         self.budget = self.budget - turn_costs + turn_profit
+        self.total_score += turn_profit
 
     def manage_resources(self):
         remove_list = []
@@ -51,12 +53,10 @@ class Main:
         for rem in remove_list:
             self.existingResources.remove(rem)
 
-    def buy_resources(self):
-        newResources = []
+    def buy_resources(self, turn_info):
         #### optimisation code in here somewhere
 
-        if self.budget > 5:
-            newResources.append(self.resources[1])
+        newResources = self.get_optimal_options(turn_info)
 
         #### ------
 
@@ -139,6 +139,29 @@ class Main:
         if self.accumulator['stored'] > self.accumulator['size']:
             self.accumulator['stored'] = self.accumulator['size']
 
+
+    def get_optimal_options(self, turn_info):
+        # find affordable_resources
+        affordable_resources = []
+        for item in self.resources:
+            if item.RA < self.budget:
+                affordable_resources.append(item)
+
+        # sort based on estimated value
+        affordable_resources = sorted(affordable_resources,
+                                      key=lambda x: self.get_resource_value(x, turn_info),
+                                      reverse=True)
+
+        money_left = self.budget
+        new_resources = []
+        while len(affordable_resources)>0 and money_left > affordable_resources[0].RA:
+            new_resources.append(affordable_resources.pop(0))
+            money_left -= new_resources[-1].RA
+
+        return new_resources
+
+    def get_resource_value(self, resource, turn_info):
+        return (resource.RU * turn_info['TR'] / (resource.RA + 1)) * resource.RL
 
 if __name__ == "__main__":
     inputs = ["0-demo.txt", "1-thunberg.txt", "2-attenborough.txt", "4-maathai.txt", "6-earle.txt",
