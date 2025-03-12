@@ -18,6 +18,8 @@ class Main:
 
         self.decisions = []
 
+        self.accumulator = {'active':False, 'size':0, 'stored':0}
+
     def save_decisions(self):
         lines = []
         for decision in self.decisions:
@@ -34,6 +36,7 @@ class Main:
     def do_turn(self, turn_info):
         self.turns_index += 1
         self.manage_resources()
+        self.manage_accumulator()
         self.buy_resources()
         turn_costs = self.calc_maintenance_cost()
         turn_profit = self.calc_profit(turn_info)
@@ -52,8 +55,8 @@ class Main:
         newResources = []
         #### optimisation code in here somewhere
 
-        # if self.budget > 5:
-        #     newResources.append(self.resources[1])
+        if self.budget > 5:
+            newResources.append(self.resources[1])
 
         #### ------
 
@@ -91,8 +94,24 @@ class Main:
         building_max = self.get_affected_value(turn_info['TX'], 'B')
 
         if powered_buildings < building_min:
-            return 0
-        buildings = min(powered_buildings, building_max)
+            missing_buildings = building_min-powered_buildings
+            if missing_buildings <= self.accumulator['stored']:
+                self.accumulator['stored'] -= missing_buildings
+            else:
+                return 0
+
+        ## calculate buildings and store them in accumulator
+        buildings = powered_buildings
+        if powered_buildings > building_max:
+            excess_buildings = powered_buildings - building_max
+            space_in_accumulator = self.accumulator['size']-self.accumulator['stored']
+            if space_in_accumulator>=excess_buildings:
+                self.accumulator['stored'] += excess_buildings
+                buildings += excess_buildings
+            else:
+                self.accumulator['stored'] += space_in_accumulator
+                buildings += space_in_accumulator
+
         value_per_building = max(self.get_affected_value(turn_info['TR'], 'D') ,0)
         return buildings*value_per_building
 
@@ -103,8 +122,22 @@ class Main:
                 if item.RT == effect_code:
                     percent_total += item.RE
         if floor:
-            return math.floor(value * percent_total)
+            return math.floor(value * (1+percent_total/100))
         return value*percent_total
+
+    def manage_accumulator(self):
+        total = 0
+        for item in self.existingResources:
+            if item.isActive and item.RT == 'E':
+                total+=item.RE
+        if total != 0:
+            self.accumulator['active'] = True
+            self.accumulator['size'] = total
+        else:
+            self.accumulator['active'] = False
+            self.accumulator['size'] = 0
+        if self.accumulator['stored'] > self.accumulator['size']:
+            self.accumulator['stored'] = self.accumulator['size']
 
 
 if __name__ == "__main__":
