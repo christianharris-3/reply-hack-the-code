@@ -31,16 +31,19 @@ class Main:
         for turn_info in self.turnsInfo:
             self.do_turn(turn_info)
         self.save_decisions()
+        print(self.total_score)
 
 
     def do_turn(self, turn_info):
         self.turns_index += 1
         self.manage_resources()
         self.manage_accumulator()
-        self.buy_resources()
+        self.buy_resources(turn_info['TX'])
         turn_costs = self.calc_maintenance_cost()
         turn_profit = self.calc_profit(turn_info)
         self.budget = self.budget - turn_costs + turn_profit
+        self.total_score += turn_profit
+        print(self.turns_index)
 
     def manage_resources(self):
         remove_list = []
@@ -51,12 +54,27 @@ class Main:
         for rem in remove_list:
             self.existingResources.remove(rem)
 
-    def buy_resources(self):
+    def buy_resources(self, max_buildings):
         newResources = []
         #### optimisation code in here somewhere
+        powered_buildings = 0
+        for resource in self.existingResources:
+            powered_buildings += resource.get_powered_buildings()
 
-        if self.budget > 5:
-            newResources.append(self.resources[1])
+        affordable_resources = sorted(
+            [r for r in self.resources if r.RA <= self.budget],
+            key=lambda x: ((x.RW/(x.RW+x.RM))*min(x.get_powered_buildings(),  powered_buildings-max_buildings))-(x.RA+x.RP*x.RL),  # Maximizing contribution to score and lifespan
+            reverse=True
+        )
+        
+        cur_budget = self.budget
+        # Buy new resources if budget allows and more power is needed
+        while affordable_resources and cur_budget >= affordable_resources[0].RA and powered_buildings <= max_buildings:
+            best_resource = affordable_resources.pop(0)
+            if cur_budget >= best_resource.RA:
+                cur_budget -= best_resource.RA
+                newResources.append(best_resource)
+                powered_buildings += best_resource.RU
 
         #### ------
 

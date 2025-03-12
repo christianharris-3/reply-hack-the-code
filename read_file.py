@@ -39,11 +39,11 @@ def readFile(filename):
     for turn in data[available_resources+1:available_resources+1+game_turns]:
         turns_info.append({
             'TM': turn[0],
-            'TX': turn[0],
-            'TR': turn[0],
+            'TX': turn[1],
+            'TR': turn[2],
         })
 
     return initial_capital, resource_info, turns_info
 
 if __name__ == "__main__":
-    print(readFile("0-demo.txt"))
+    print(readFile("inputs/0-demo.txt"))
