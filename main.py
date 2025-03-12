@@ -5,6 +5,7 @@ import math
 class Main:
     def __init__(self, input_file):
         self.output_file = 'outputs/output '+input_file.split("/")[-1]
+        self.current_file = input_file.split('/')[-1].split(".")[0]
         out = readFile(input_file)
         self.initialCapital = out[0]
         self.resourceInfo = out[1]
@@ -28,7 +29,11 @@ class Main:
             f.writelines(lines)
 
     def play_game(self):
+        count = 1
         for turn_info in self.turnsInfo:
+            if count % 500 == 0:
+                print('processing',self.current_file,f'{count}/{len(self.turnsInfo)}')
+            count += 1
             self.do_turn(turn_info)
         self.save_decisions()
         print('total score: ',self.total_score)
@@ -155,13 +160,16 @@ class Main:
         money_left = self.budget
         new_resources = []
         while len(affordable_resources)>0 and money_left > affordable_resources[0].RA:
-            new_resources.append(affordable_resources.pop(0))
-            money_left -= new_resources[-1].RA
+            best_resource = affordable_resources.pop(0)
+            maintenance_cost = sum([r.RP for r in self.existingResources+new_resources]) + best_resource.RP
+            if self.budget - best_resource.RA >= maintenance_cost:
+                new_resources.append(best_resource)
+                money_left -= best_resource.RA
 
         return new_resources
 
     def get_resource_value(self, resource, turn_info):
-        return (resource.RU * turn_info['TR'] / (resource.RA + 1)) * resource.RL
+        return resource.RU * turn_info['TR'] * resource.RL / (resource.RA + resource.RP)
 
 if __name__ == "__main__":
     inputs = ["0-demo.txt", "1-thunberg.txt", "2-attenborough.txt", "4-maathai.txt", "6-earle.txt",
