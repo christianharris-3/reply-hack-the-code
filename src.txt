@@ -1,3 +1,106 @@
+import math
+
+
+
+
+def readFile(filename):
+    # load file
+    with open(filename,'r') as f:
+        lines = f.readlines()
+    # split file into a 2d list
+    data = []
+    for line in lines:
+        data.append([])
+        for item in line.split():
+            try:
+                item = int(item)
+            except:
+                pass
+            data[-1].append(item)
+
+    # sort data into individual variables
+    initial_capital = data[0][0]
+    available_resources = data[0][1]
+    game_turns = data[0][2]
+
+    resource_info = []
+    for resources in data[1:available_resources+1]:
+        resource_info.append({
+            'RI': resources[0],
+            'RA': resources[1],
+            'RP': resources[2],
+            'RW': resources[3],
+            'RM': resources[4],
+            'RL': resources[5],
+            'RU': resources[6],
+            'RT': resources[7],
+        })
+        if len(resources) > 8:
+            resource_info[-1]['RE'] = resources[8]
+
+    turns_info = []
+    for turn in data[available_resources+1:available_resources+1+game_turns]:
+        turns_info.append({
+            'TM': turn[0],
+            'TX': turn[1],
+            'TR': turn[2],
+        })
+
+    return initial_capital, resource_info, turns_info
+
+class Resource:
+    def __init__(self, info, lifespan_increase=1):
+        self.originalInfo = info
+
+        self.RI = info['RI'] # ID
+        self.RA = info['RA'] # Cost
+        self.RP = info['RP'] # Maintenance Cost
+        self.RW = info['RW'] # Active turns
+        self.RM = info['RM'] # Downtime turns
+        self.RL = info['RL'] # Lifecycle
+        self.RU = info['RU'] # No. powered buildings
+        self.RT = info['RT'] # Effect
+        if self.RT != "X":
+            self.RE = info['RE'] # Effect percentage
+
+        ## apply effect C
+        self.RL = math.floor(self.RL * lifespan_increase)
+
+        self.turnsActive = 0
+        self.turnsDown = 0
+        self.turnsExisted = 0
+        self.isActive = True
+
+    def update_turns(self):
+        self.turnsExisted += 1
+        if self.isActive:
+            self.turnsActive += 1
+            if self.turnsActive == self.RW:
+                self.isActive = False
+                self.turnsActive = 0
+
+        else:
+            self.turnsDown += 1
+            if self.turnsDown == self.RM:
+                self.isActive = True
+                self.turnsDown = 0
+    def get_out_of_life(self):
+        return self.turnsExisted == self.RL
+
+    def get_maintenance_cost(self):
+        return self.RP
+
+    def get_powered_buildings(self):
+        if self.isActive:
+            return self.RU
+        return 0
+
+    def recreate(self, lifespan_increase=1):
+        return Resource(self.originalInfo, lifespan_increase)
+
+    
+
+
 from read_file import readFile
 from Resource import Resource
 import math
@@ -5,7 +108,6 @@ import math
 class Main:
     def __init__(self, input_file):
         self.output_file = 'outputs/output '+input_file.split("/")[-1]
-        self.current_file = input_file.split('/')[-1].split(".")[0]
         out = readFile(input_file)
         self.initialCapital = out[0]
         self.resourceInfo = out[1]
@@ -29,27 +131,22 @@ class Main:
             f.writelines(lines)
 
     def play_game(self):
-        count = 1
         for turn_info in self.turnsInfo:
-            if count % 500 == 0:
-                print('processing',self.current_file,f'{count}/{len(self.turnsInfo)}')
-            count += 1
             self.do_turn(turn_info)
         self.save_decisions()
-        print('total score: ',self.total_score)
+        print(self.total_score)
 
 
     def do_turn(self, turn_info):
         self.turns_index += 1
         self.manage_resources()
         self.manage_accumulator()
-        self.buy_resources(turn_info)
-
+        self.buy_resources(turn_info['TX'])
         turn_costs = self.calc_maintenance_cost()
         turn_profit = self.calc_profit(turn_info)
         self.budget = self.budget - turn_costs + turn_profit
         self.total_score += turn_profit
-        # print('current score:',self.total_score,'cost',turn_costs,'profit',turn_profit,'current_money',self.budget,'resources: ',[(a.isActive, a.RI) for a in self.existingResources])
+        print(self.turns_index)
 
     def manage_resources(self):
         remove_list = []
@@ -60,8 +157,8 @@ class Main:
         for rem in remove_list:
             self.existingResources.remove(rem)
 
-    def buy_resources(self, turn_info):
-        max_buildings = turn_info["TX"]
+    def buy_resources(self, max_buildings):
+        newResources = []
         #### optimisation code in here somewhere
         powered_buildings = 0
         for resource in self.existingResources:
@@ -69,7 +166,7 @@ class Main:
 
         affordable_resources = sorted(
             [r for r in self.resources if r.RA <= self.budget],
-            key=lambda x: ((x.RW/x.RW+x.RM)*min(x.get_powered_buildings(),  powered_buildings-max_buildings))-(x.RA+x.RP*x.RL),  # Maximizing contribution to score and lifespan
+            key=lambda x: ((x.RW)*min(x.get_powered_buildings(),  powered_buildings-max_buildings))-(x.RA+x.RP*x.RL),  # Maximizing contribution to score and lifespan
             reverse=True
         )
         
@@ -81,9 +178,6 @@ class Main:
                 cur_budget -= best_resource.RA
                 newResources.append(best_resource)
                 powered_buildings += best_resource.RU
-                
-        # newResources = self.get_optimal_options(turn_info)
-        # newResources = self.get_predefined_options()
 
         #### ------
 
@@ -129,7 +223,6 @@ class Main:
 
         ## calculate buildings and store them in accumulator
         buildings = powered_buildings
-
         if powered_buildings > building_max:
             excess_buildings = powered_buildings - building_max
             space_in_accumulator = self.accumulator['size']-self.accumulator['stored']
@@ -137,12 +230,10 @@ class Main:
                 self.accumulator['stored'] += excess_buildings
                 buildings += excess_buildings
             else:
-                excess_buildings-=space_in_accumulator
-                buildings-=excess_buildings
                 self.accumulator['stored'] += space_in_accumulator
+                buildings += space_in_accumulator
 
         value_per_building = max(self.get_affected_value(turn_info['TR'], 'D') ,0)
-
         return buildings*value_per_building
 
     def get_affected_value(self,value, effect_code, floor=True):
@@ -153,7 +244,7 @@ class Main:
                     percent_total += item.RE
         if floor:
             return math.floor(value * (1+percent_total/100))
-        return value * (1+percent_total/100)
+        return value*percent_total
 
     def manage_accumulator(self):
         total = 0
@@ -170,44 +261,9 @@ class Main:
             self.accumulator['stored'] = self.accumulator['size']
 
 
-    def get_optimal_options(self, turn_info):
-        # find affordable_resources
-        affordable_resources = []
-        for item in self.resources:
-            if item.RA < self.budget:
-                affordable_resources.append(item)
-
-        # sort based on estimated value
-        affordable_resources = sorted(affordable_resources,
-                                      key=lambda x: self.get_resource_value(x, turn_info),
-                                      reverse=True)
-
-        money_left = self.budget
-        new_resources = []
-        while len(affordable_resources)>0 and money_left > affordable_resources[0].RA:
-            best_resource = affordable_resources.pop(0)
-            maintenance_cost = sum([r.RP for r in self.existingResources+new_resources]) + best_resource.RP
-            if self.budget - best_resource.RA >= maintenance_cost:
-                new_resources.append(best_resource)
-                money_left -= best_resource.RA
-
-        return new_resources
-
-    def get_resource_value(self, resource, turn_info):
-        return resource.RU * turn_info['TR'] * resource.RL / (resource.RA + resource.RP)
-
-    def get_predefined_options(self):
-        ids = [[5],[2],[2],[],[2,2],[2]]
-        outputs = ids[self.turns_index]
-        new_resources = []
-        for id_val in outputs:
-            new_resources.append(self.resources[id_val-1])
-        return new_resources
-
 if __name__ == "__main__":
     inputs = ["0-demo.txt", "1-thunberg.txt", "2-attenborough.txt", "4-maathai.txt", "6-earle.txt",
               "7-mckibben.txt" ,"8-shiva.txt"]
-    # inputs = ["0-demo.txt"]
     for inp in inputs:
         main = Main('inputs/'+inp)
         main.play_game()

@@ -46,4 +46,4 @@ def readFile(filename):
     return initial_capital, resource_info, turns_info
 
 if __name__ == "__main__":
-    print(readFile("0-demo.txt"))
+    print(readFile("inputs/0-demo.txt"))
