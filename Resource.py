@@ -1,7 +1,8 @@
-from read_file import read_file
 
-class Resource():
+class Resource:
     def __init__(self, info):
+        self.originalInfo = info
+
         self.RI = info['RI'] # ID
         self.RA = info['RA'] # Cost
         self.RP = info['RP'] # Maintenance Cost
@@ -10,12 +11,13 @@ class Resource():
         self.RL = info['RL'] # Lifecycle
         self.RU = info['RU'] # No. powered buildings
         self.RT = info['RT'] # Effect
-        self.RE = info['RE'] # Effect percentage
+        if self.RT != "X":
+            self.RE = info['RE'] # Effect percentage
         self.turnsActive = 0
         self.turnsDown = 0
         self.isActive = True
 
-    def updateTurns(self):
+    def update_turns(self):
         if self.isActive:
             self.turnsActive += 1
             if self.turnsActive == self.RW:
@@ -27,7 +29,15 @@ class Resource():
             if self.turnsDown == self.RM:
                 self.isActive = True
                 self.turnsDown = 0
-        
+    def get_maintenance_cost(self):
+        return self.RP;
 
+    def get_powered_buildings(self):
+        if self.isActive:
+            return self.RU
+        return 0
+
+    def recreate(self):
+        return Resource(self.originalInfo)
 
     

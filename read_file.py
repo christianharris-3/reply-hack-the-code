@@ -1,6 +1,6 @@
 
 
-def read_file(filename):
+def readFile(filename):
     # load file
     with open(filename,'r') as f:
         lines = f.readlines()
@@ -46,4 +46,4 @@ def read_file(filename):
     return initial_capital, resource_info, turns_info
 
 if __name__ == "__main__":
-    print(read_file("0-demo.txt"))
+    print(readFile("0-demo.txt"))
