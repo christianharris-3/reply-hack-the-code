@@ -37,7 +37,7 @@ class Resource:
                 self.isActive = True
                 self.turnsDown = 0
     def get_out_of_life(self):
-        return self.turnsExisted == self.RL
+        return self.turnsExisted >= self.RL
 
     def get_maintenance_cost(self):
         return self.RP
