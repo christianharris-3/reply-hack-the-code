@@ -45,10 +45,10 @@ def select_resources(D, resources, turns):
         for r in active_resources:
             resource_lifetimes[r[0]] -= 1
         
-        # Prioritize resources that maximize `RU * TR` to increase score
+        # Prioritize resources that maximize long-term profit
         affordable_resources = sorted(
             [r for r in resources if r[1] <= D],
-            key=lambda x: (x[6] * TR / (x[1] + 1)) * x[5],  # Maximizing contribution to score and lifespan
+            key=lambda x: (x[6] * TR * x[5]) / (x[1] + x[2]),  # Maximizing long-term profit
             reverse=True
         )
         
@@ -72,7 +72,10 @@ def select_resources(D, resources, turns):
         
         # Deduct maintenance costs after purchases, but ensure budget doesn’t go negative
         maintenance_cost = sum(r[2] for r in active_resources)
-        D = max(0, D - maintenance_cost)
+        if D >= maintenance_cost:
+            D -= maintenance_cost
+        else:
+            D = 0
         
     print(f"Final Optimized Score: {total_score}")  # Debug output
     return decisions
@@ -87,13 +90,10 @@ def main(input_file, output_file):
     write_output(output_file, decisions)
 
 if __name__ == "__main__":
-    inputs = ["0-demo.txt", "1-thunberg.txt", "2-attenborough.txt", "4-maathai.txt", "6-earle.txt", "8-shiva.txt"]
-    for each in inputs:
-        input_file = each  # Example input file
-        output_file = each.rsplit(".",1)[0] + "output.txt"
-        print(input_file, output_file)  # Example output file
-        main(input_file, output_file)
-
+    input_file = "8-shiva.txt"  # Only process shiva.txt
+    output_file = "8-shiva-output.txt"
+    print(input_file, output_file)  # Example output file
+    main(input_file, output_file)
 
 
 

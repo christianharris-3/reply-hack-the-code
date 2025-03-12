@@ -33,11 +33,7 @@ def select_resources(D, resources, turns):
         if t % 100 == 0:
             print(t)
         
-        # Compute profit from current resources
         buildings_powered = sum(r[6] for r in active_resources)
-        profit = min(buildings_powered, TX) * TR
-        total_score += profit
-        D += profit  # Add profit to budget before making purchases
         
         # Remove expired resources
         expired_resources = [r for r in active_resources if resource_lifetimes.get(r[0], 0) == 1]
@@ -45,10 +41,10 @@ def select_resources(D, resources, turns):
         for r in active_resources:
             resource_lifetimes[r[0]] -= 1
         
-        # Prioritize resources that maximize `RU * TR` to increase score
+        # Prioritize resources that maximize long-term profit
         affordable_resources = sorted(
             [r for r in resources if r[1] <= D],
-            key=lambda x: (x[6] * TR / (x[1] + 1)) * x[5],  # Maximizing contribution to score and lifespan
+            key=lambda x: (x[6] * TR * x[5]) / (x[1] + x[2]),  # Maximizing long-term profit
             reverse=True
         )
         
@@ -57,12 +53,15 @@ def select_resources(D, resources, turns):
         # Buy new resources if budget allows and more power is needed
         while affordable_resources and D >= affordable_resources[0][1]:
             best_resource = affordable_resources.pop(0)
-            if D >= best_resource[1]:
+            maintenance_cost = sum(r[2] for r in active_resources) + best_resource[2]
+            if D >= best_resource[1] and D - best_resource[1] >= maintenance_cost:
                 D -= best_resource[1]
                 chosen.append(best_resource[0])
                 active_resources.append(best_resource)
                 resource_lifetimes[best_resource[0]] = best_resource[5]  # Track lifespan
                 buildings_powered += best_resource[6]
+            else:
+                break  # Stop purchasing if future maintenance costs cannot be covered
         
         # Record the turn
         if chosen:
@@ -72,7 +71,16 @@ def select_resources(D, resources, turns):
         
         # Deduct maintenance costs after purchases, but ensure budget doesn’t go negative
         maintenance_cost = sum(r[2] for r in active_resources)
-        D = max(0, D - maintenance_cost)
+        # Compute profit from current resources
+        
+        profit = min(buildings_powered, TX) * TR
+        total_score += profit
+
+        D += profit
+        if D >= maintenance_cost:
+            D -= maintenance_cost
+        else:
+            raise ValueError("Budget cannot cover maintenance costs.")
         
     print(f"Final Optimized Score: {total_score}")  # Debug output
     return decisions
@@ -87,12 +95,10 @@ def main(input_file, output_file):
     write_output(output_file, decisions)
 
 if __name__ == "__main__":
-    inputs = ["0-demo.txt", "1-thunberg.txt", "2-attenborough.txt", "4-maathai.txt", "6-earle.txt", "8-shiva.txt"]
-    for each in inputs:
-        input_file = each  # Example input file
-        output_file = each.rsplit(".",1)[0] + "output.txt"
-        print(input_file, output_file)  # Example output file
-        main(input_file, output_file)
+    input_file = "8-shiva.txt"  # Only process shiva.txt
+    output_file = "8-shiva-output.txt"
+    print(input_file, output_file)  # Example output file
+    main(input_file, output_file)
 
 
 
