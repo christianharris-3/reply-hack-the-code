@@ -1,5 +1,6 @@
 from read_file import readFile
 from Resource import Resource
+import math
 
 class Main:
     def __init__(self, input_file):
@@ -66,7 +67,7 @@ class Main:
         self.budget -= get_cost(newResources)
         decision = [self.turns_index, len(newResources)]
         for item in newResources:
-            self.existingResources.append(item.recreate())
+            self.existingResources.append(item.recreate(self.get_affected_value(1,'C',False)))
             decision.append(item.RI)
         self.decisions.append(decision)
 
@@ -81,9 +82,30 @@ class Main:
         powered_buildings = 0
         for resource in self.existingResources:
             powered_buildings += resource.get_powered_buildings()
-        if powered_buildings < turn_info['TM']:
+
+        ## apply effect A
+        powered_buildings = self.get_affected_value(powered_buildings, 'A')
+
+        # apply effect B
+        building_min = self.get_affected_value(turn_info['TM'], 'B')
+        building_max = self.get_affected_value(turn_info['TX'], 'B')
+
+        if powered_buildings < building_min:
             return 0
-        return min(powered_buildings, turn_info['TX']) * turn_info['TR']
+        buildings = min(powered_buildings, building_max)
+        value_per_building = max(self.get_affected_value(turn_info['TR'], 'D') ,0)
+        return buildings*value_per_building
+
+    def get_affected_value(self,value, effect_code, floor=True):
+        percent_total = 0
+        for item in self.existingResources:
+            if item.isActive:
+                if item.RT == effect_code:
+                    percent_total += item.RE
+        if floor:
+            return math.floor(value * percent_total)
+        return value*percent_total
+
 
 if __name__ == "__main__":
     inputs = ["0-demo.txt", "1-thunberg.txt", "2-attenborough.txt", "4-maathai.txt", "6-earle.txt",

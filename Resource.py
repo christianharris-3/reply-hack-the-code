@@ -1,6 +1,7 @@
+import math
 
 class Resource:
-    def __init__(self, info):
+    def __init__(self, info, lifespan_increase=1):
         self.originalInfo = info
 
         self.RI = info['RI'] # ID
@@ -13,6 +14,10 @@ class Resource:
         self.RT = info['RT'] # Effect
         if self.RT != "X":
             self.RE = info['RE'] # Effect percentage
+
+        ## apply effect C
+        self.RL = math.floor(self.RL * lifespan_increase)
+
         self.turnsActive = 0
         self.turnsDown = 0
         self.turnsExisted = 0
@@ -42,7 +47,7 @@ class Resource:
             return self.RU
         return 0
 
-    def recreate(self):
-        return Resource(self.originalInfo)
+    def recreate(self, lifespan_increase=1):
+        return Resource(self.originalInfo, lifespan_increase)
 
     
