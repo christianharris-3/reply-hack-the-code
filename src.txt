@@ -1,3 +1,106 @@
+import math
+
+
+
+
+def readFile(filename):
+    # load file
+    with open(filename,'r') as f:
+        lines = f.readlines()
+    # split file into a 2d list
+    data = []
+    for line in lines:
+        data.append([])
+        for item in line.split():
+            try:
+                item = int(item)
+            except:
+                pass
+            data[-1].append(item)
+
+    # sort data into individual variables
+    initial_capital = data[0][0]
+    available_resources = data[0][1]
+    game_turns = data[0][2]
+
+    resource_info = []
+    for resources in data[1:available_resources+1]:
+        resource_info.append({
+            'RI': resources[0],
+            'RA': resources[1],
+            'RP': resources[2],
+            'RW': resources[3],
+            'RM': resources[4],
+            'RL': resources[5],
+            'RU': resources[6],
+            'RT': resources[7],
+        })
+        if len(resources) > 8:
+            resource_info[-1]['RE'] = resources[8]
+
+    turns_info = []
+    for turn in data[available_resources+1:available_resources+1+game_turns]:
+        turns_info.append({
+            'TM': turn[0],
+            'TX': turn[1],
+            'TR': turn[2],
+        })
+
+    return initial_capital, resource_info, turns_info
+
+class Resource:
+    def __init__(self, info, lifespan_increase=1):
+        self.originalInfo = info
+
+        self.RI = info['RI'] # ID
+        self.RA = info['RA'] # Cost
+        self.RP = info['RP'] # Maintenance Cost
+        self.RW = info['RW'] # Active turns
+        self.RM = info['RM'] # Downtime turns
+        self.RL = info['RL'] # Lifecycle
+        self.RU = info['RU'] # No. powered buildings
+        self.RT = info['RT'] # Effect
+        if self.RT != "X":
+            self.RE = info['RE'] # Effect percentage
+
+        ## apply effect C
+        self.RL = math.floor(self.RL * lifespan_increase)
+
+        self.turnsActive = 0
+        self.turnsDown = 0
+        self.turnsExisted = 0
+        self.isActive = True
+
+    def update_turns(self):
+        self.turnsExisted += 1
+        if self.isActive:
+            self.turnsActive += 1
+            if self.turnsActive == self.RW:
+                self.isActive = False
+                self.turnsActive = 0
+
+        else:
+            self.turnsDown += 1
+            if self.turnsDown == self.RM:
+                self.isActive = True
+                self.turnsDown = 0
+    def get_out_of_life(self):
+        return self.turnsExisted == self.RL
+
+    def get_maintenance_cost(self):
+        return self.RP
+
+    def get_powered_buildings(self):
+        if self.isActive:
+            return self.RU
+        return 0
+
+    def recreate(self, lifespan_increase=1):
+        return Resource(self.originalInfo, lifespan_increase)
+
+    
+
+
 from read_file import readFile
 from Resource import Resource
 import math
@@ -63,7 +166,7 @@ class Main:
 
         affordable_resources = sorted(
             [r for r in self.resources if r.RA <= self.budget],
-            key=lambda x: ((x.RW/x.RW+x.RM)*min(x.get_powered_buildings(),  powered_buildings-max_buildings))-(x.RA+x.RP*x.RL),  # Maximizing contribution to score and lifespan
+            key=lambda x: ((x.RW)*min(x.get_powered_buildings(),  powered_buildings-max_buildings))-(x.RA+x.RP*x.RL),  # Maximizing contribution to score and lifespan
             reverse=True
         )
         
