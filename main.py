@@ -65,18 +65,25 @@ class Main:
         newResources = []
         #### optimisation code in here somewhere
         powered_buildings = 0
+        total_maintenance = 0
         for resource in self.existingResources:
             powered_buildings += resource.get_powered_buildings()
+            total_maintenance += resource.get_maintenance_cost()
 
-        affordable_resources = sorted(
-            [r for r in self.resources if r.RA <= self.budget],
-            key=lambda x: ((x.RW/x.RW+x.RM)*min(x.get_powered_buildings(),  powered_buildings-max_buildings))-(x.RA+x.RP*x.RL),  # Maximizing contribution to score and lifespan
-            reverse=True
-        )
-        
+
         cur_budget = self.budget
+        if cur_budget > 2*total_maintenance:
+            affordable_resources = sorted(
+                [r for r in self.resources if r.RA <= self.budget],
+                key=lambda x: ((x.RW/x.RW+x.RM)*min(x.get_powered_buildings(),  powered_buildings-max_buildings))-10*(x.RA+x.RP*x.RL),  # Maximizing contribution to score and lifespan
+                reverse=True
+            )
+        else:
+            affordable_resources = []
+        
+    
         # Buy new resources if budget allows and more power is needed
-        while affordable_resources and cur_budget >= affordable_resources[0].RA and powered_buildings <= max_buildings:
+        while affordable_resources and cur_budget >= (affordable_resources[0].RA) and powered_buildings <= max_buildings:
             best_resource = affordable_resources.pop(0)
             if cur_budget >= best_resource.RA:
                 cur_budget -= best_resource.RA
